@@ -26,6 +26,7 @@ type (
 	HTTP struct {
 		Port           string `env:"HTTP_PORT,required"`
 		UsePreforkMode bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
+		ShutdownTime   int    `env:"HTTP_SHUTDOWN_TIME" envDefault:"10"`
 	}
 
 	// Log -.
@@ -35,8 +36,9 @@ type (
 
 	// PG -.
 	PG struct {
-		PoolMax int    `env:"PG_POOL_MAX,required"`
-		URL     string `env:"PG_URL,required"`
+		PoolMax  int    `env:"PG_POOL_MAX,required"`
+		PoolIdle int    `env:"PG_POOL_IDLE,required"`
+		URL      string `env:"PG_URL,required"`
 	}
 
 	// Swagger -.

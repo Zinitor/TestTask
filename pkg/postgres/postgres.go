@@ -2,13 +2,11 @@
 package postgres
 
 import (
-	"context"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const (
@@ -18,60 +16,40 @@ const (
 )
 
 // Postgres -.
-type Postgres struct {
-	maxPoolSize  int
-	connAttempts int
-	connTimeout  time.Duration
-
-	Builder squirrel.StatementBuilderType
-	Pool    *pgxpool.Pool
+type DB struct {
+	*gorm.DB
 }
 
 // New -.
-func New(url string, opts ...Option) (*Postgres, error) {
-	pg := &Postgres{
-		maxPoolSize:  _defaultMaxPoolSize,
-		connAttempts: _defaultConnAttempts,
-		connTimeout:  _defaultConnTimeout,
-	}
-
-	// Custom options
+func New(dsn string, opts ...Option) (*DB, error) {
+	o := defaultOptions()
 	for _, opt := range opts {
-		opt(pg)
+		opt(o)
 	}
 
-	pg.Builder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-
-	poolConfig, err := pgxpool.ParseConfig(url)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: o.gormLogger,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.ParseConfig: %w", err)
+		return nil, fmt.Errorf("gorm open failed: %w", err)
 	}
 
-	poolConfig.MaxConns = int32(pg.maxPoolSize) //nolint:gosec // skip integer overflow conversion int -> int32
-
-	for pg.connAttempts > 0 {
-		pg.Pool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
-		if err == nil {
-			break
-		}
-
-		log.Printf("Postgres is trying to connect, attempts left: %d", pg.connAttempts)
-
-		time.Sleep(pg.connTimeout)
-
-		pg.connAttempts--
-	}
-
+	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - connAttempts == 0: %w", err)
+		return nil, fmt.Errorf("get sql.DB failed: %w", err)
 	}
+	sqlDB.SetMaxOpenConns(o.maxPoolSize)
+	sqlDB.SetMaxIdleConns(o.maxIdleConns)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
-	return pg, nil
+	return &DB{DB: db}, nil
 }
 
 // Close -.
-func (p *Postgres) Close() {
-	if p.Pool != nil {
-		p.Pool.Close()
+func (d *DB) Close() error {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB: %w", err)
 	}
+	return sqlDB.Close()
 }

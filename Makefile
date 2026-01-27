@@ -60,22 +60,7 @@ docs:
 		go install github.com/swaggo/swag/cmd/swag@latest; \
 		echo "swag installed. Add swag into path if swag is not allowed command"; \
 	fi; \
-	swag init -g main.go -d cmd/api,internal/interfaces/http/delivery/json,internal/interfaces/http/handlers && swag fmt
-
-.PHONY: mongo
-mongo:
-	@echo "Setup local MongoDB..."
-	docker-compose -f ./tools/docker-compose.yml up -d
-
-.PHONY: mongo-init-win
-mongo-init-win:
-	@echo "Re-running MongoDB init script..."
-	docker exec -i mongodb-local mongosh -u root -p root_password --authenticationDatabase admin /docker-entrypoint-initdb.d/mongo-init.js
-
-.PHONY: mongo-init-lin
-mongo-init-lin:
-	@echo "Re-running MongoDB init script..."
-	cat ./tools/mongo-init.js | docker exec -i mongodb-local mongosh -u root -p root_password --authenticationDatabase admin
+	swag init -g main.go -d cmd/app,internal/controller && swag fmt
 
 .PHONY: test
 test:

@@ -1,10 +1,15 @@
 package messages
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Message struct {
-	ID        int
-	ChatID    int
-	Text      string
+	gorm.Model
+
+	ID        int    `gorm:"primaryKey"`
+	Text      string `gorm:"size:200"`
 	CreatedAt time.Time
 }

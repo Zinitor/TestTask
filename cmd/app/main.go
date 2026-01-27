@@ -1,9 +1,9 @@
 package main
 
 import (
+	"ReviewTask/config"
+	"ReviewTask/internal/app"
 	"log"
-	"tgTorrentClient/config"
-	"tgTorrentClient/internal/app"
 )
 
 func main() {
