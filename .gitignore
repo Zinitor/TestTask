@@ -14,12 +14,11 @@ profile.cov
 vendor/
 tmp/
 bin/
-docs/
+
 tools/data*
 
 go.work
 go.work.sum
 
-.env*
 
 .vscode/

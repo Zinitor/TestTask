@@ -26,7 +26,7 @@ type (
 	HTTP struct {
 		Port           string `env:"HTTP_PORT,required"`
 		UsePreforkMode bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
-		ShutdownTime   int    `env:"HTTP_SHUTDOWN_TIME" envDefault:"10"`
+		ShutdownTime   int    `env:"HTTP_SHUTDOWN_TIME"    envDefault:"10"`
 	}
 
 	// Log -.

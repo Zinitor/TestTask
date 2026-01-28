@@ -6,23 +6,31 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const (
+	_defaultMaxPoolSize     = 1
+	_defaultMaxIdleConns    = 2
+	_defaultConnTimeout     = 5 * time.Second
+	_defaultMaxConnLifetime = 30 * time.Minute
+)
+
 // Option - functional options pattern.
 type Option func(*options)
 
 type options struct {
-	maxPoolSize  int
-	maxIdleConns int
-	connAttempts int
-	connTimeout  time.Duration
-	gormLogger   logger.Interface
+	maxPoolSize     int
+	maxIdleConns    int
+	connAttempts    int
+	maxConnLifetime time.Duration
+	connTimeout     time.Duration
+	gormLogger      logger.Interface
 }
 
 // defaultOptions - sane defaults.
 func defaultOptions() *options {
 	return &options{
-		maxPoolSize:  10,
-		maxIdleConns: 2,
-		connTimeout:  5 * time.Second,
+		maxPoolSize:  _defaultMaxPoolSize,
+		maxIdleConns: _defaultMaxIdleConns,
+		connTimeout:  _defaultConnTimeout,
 		gormLogger:   logger.Default,
 	}
 }
@@ -51,6 +59,11 @@ func ConnTimeout(timeout time.Duration) Option {
 // MaxIdleConns sets maximum idle connections
 func MaxIdleConns(n int) Option {
 	return func(o *options) { o.maxIdleConns = n }
+}
+
+// MaxConnLifetime sets maximum connection lifetime
+func MaxConnLifetime(lifetime time.Duration) Option {
+	return func(o *options) { o.maxConnLifetime = lifetime }
 }
 
 // GormLogger configures GORM's internal logger

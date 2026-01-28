@@ -1,17 +1,19 @@
 package chats
 
 import (
-	"ReviewTask/internal/repos/messages"
-	"time"
-
 	"gorm.io/gorm"
 )
 
 type Chat struct {
 	gorm.Model
 
-	ID        int    `gorm:"primaryKey"`
-	Title     string `gorm:"size:200"`
-	CreatedAt time.Time
-	Messages  []messages.Message `gorm:"foreignKey:UserId"`
+	Title    string    `gorm:"size:200;not null"`
+	Messages []Message `gorm:"foreignKey:ChatID"`
+}
+
+type Message struct {
+	gorm.Model
+
+	Text   string `gorm:"size:200;not null"`
+	ChatID uint
 }

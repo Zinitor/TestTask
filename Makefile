@@ -10,7 +10,7 @@ ifneq (,$(wildcard .env))
 endif
 
 .PHONY: dev
-dev:
+dev: docs
 	@if command -v air >/dev/null 2>&1; then \
 		if [ "$(OS)" = "Windows_NT" ]; then \
 			echo "Using Windows config: .air.win.toml"; \
@@ -60,7 +60,7 @@ docs:
 		go install github.com/swaggo/swag/cmd/swag@latest; \
 		echo "swag installed. Add swag into path if swag is not allowed command"; \
 	fi; \
-	swag init -g main.go -d cmd/app,internal/controller && swag fmt
+	swag init -g main.go -d cmd/app,internal/controllers && swag fmt
 
 .PHONY: test
 test:

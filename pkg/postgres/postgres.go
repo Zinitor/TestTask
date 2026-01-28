@@ -3,19 +3,12 @@ package postgres
 
 import (
 	"fmt"
-	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-const (
-	_defaultMaxPoolSize  = 1
-	_defaultConnAttempts = 10
-	_defaultConnTimeout  = time.Second
-)
-
-// Postgres -.
+// DB -.
 type DB struct {
 	*gorm.DB
 }
@@ -40,7 +33,7 @@ func New(dsn string, opts ...Option) (*DB, error) {
 	}
 	sqlDB.SetMaxOpenConns(o.maxPoolSize)
 	sqlDB.SetMaxIdleConns(o.maxIdleConns)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	sqlDB.SetConnMaxLifetime(o.maxConnLifetime)
 
 	return &DB{DB: db}, nil
 }

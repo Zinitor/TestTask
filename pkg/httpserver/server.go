@@ -19,9 +19,6 @@ type Server struct {
 	HTTPServer *http.Server // Public field for handler/customization
 	notify     chan error
 
-	address         string
-	readTimeout     time.Duration
-	writeTimeout    time.Duration
 	shutdownTimeout time.Duration
 
 	logger logger.Interface
@@ -30,7 +27,6 @@ type Server struct {
 // New creates a new HTTP server instance.
 // User must set HTTPServer.Handler before calling Start().
 func New(l logger.Interface, opts ...Option) *Server {
-	// Build configuration using functional options pattern
 	cfg := defaultOptions()
 	for _, opt := range opts {
 		opt(cfg)
@@ -46,7 +42,6 @@ func New(l logger.Interface, opts ...Option) *Server {
 			Addr:         cfg.address,
 			ReadTimeout:  cfg.readTimeout,
 			WriteTimeout: cfg.writeTimeout,
-			// Handler intentionally nil - user must configure before Start()
 		},
 		notify:          make(chan error, 1),
 		shutdownTimeout: cfg.shutdownTimeout,
@@ -60,16 +55,15 @@ func (s *Server) Start() {
 	s.eg.Go(func() error {
 		err := s.HTTPServer.ListenAndServe()
 
-		// Propagate unexpected errors (exclude graceful shutdown signal)
 		if err != nil && err != http.ErrServerClosed {
 			s.notify <- err
 		}
 
-		close(s.notify) // Signal termination to listeners
-		return nil      // Treat ErrServerClosed as successful termination
+		close(s.notify)
+		return nil
 	})
 
-	s.logger.Info("restapi server - Server - Started", "address", s.HTTPServer.Addr)
+	s.logger.Info("restapi server - Server - Started at adress %s", s.HTTPServer.Addr)
 }
 
 // Notify returns channel receiving startup/runtime errors.
@@ -82,7 +76,6 @@ func (s *Server) Notify() <-chan error {
 func (s *Server) Shutdown() error {
 	var errs []error
 
-	// Initiate HTTP server shutdown with timeout context
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 
@@ -93,7 +86,6 @@ func (s *Server) Shutdown() error {
 		}
 	}
 
-	// Wait for server goroutine completion
 	if err := s.eg.Wait(); err != nil {
 		if !errors.Is(err, context.Canceled) {
 			s.logger.Error(err, "restapi server - Server - Shutdown - errgroup.Wait")

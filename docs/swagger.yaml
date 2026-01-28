@@ -1,0 +1,221 @@
+definitions:
+  chats.Chat:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/chats.Message'
+        type: array
+      title:
+        type: string
+    type: object
+  chats.CreateChatRequest:
+    properties:
+      title:
+        maxLength: 200
+        minLength: 1
+        type: string
+    required:
+    - title
+    type: object
+  chats.CreateMessageRequest:
+    properties:
+      text:
+        maxLength: 500
+        minLength: 1
+        type: string
+    required:
+    - text
+    type: object
+  chats.Message:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      text:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /chats/:
+    post:
+      consumes:
+      - application/json
+      description: Creates a chat resource using the title provided in the request
+        body
+      parameters:
+      - description: Chat creation payload
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/chats.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Chat created successfully
+          schema:
+            $ref: '#/definitions/chats.Chat'
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new chat
+      tags:
+      - chats
+  /chats/{id}:
+    delete:
+      description: Soft deletes a chat and its messages
+      parameters:
+      - description: Chat ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Chat deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid chat ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete chat by ID
+      tags:
+      - chats
+    get:
+      description: Retrieves a chat with limited messages (default 20, max 100)
+      parameters:
+      - description: Chat ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 20
+        description: Max messages to return
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: id of last message
+        in: query
+        name: last_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat retrieved successfully
+          schema:
+            $ref: '#/definitions/chats.Chat'
+        "400":
+          description: Invalid chat ID or limit
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get chat by ID
+      tags:
+      - chats
+  /chats/{id}/messages/:
+    post:
+      consumes:
+      - application/json
+      description: Adds a new message to an existing chat specified by ID
+      parameters:
+      - description: Chat ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message payload
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/chats.CreateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Message created successfully
+          schema:
+            $ref: '#/definitions/chats.Message'
+        "400":
+          description: 'Invalid request: missing text or invalid format'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Chat not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add message to chat
+      tags:
+      - chats
+  /health:
+    get:
+      description: Returns a simple greeting message confirming the Chats API is operational
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Hello from Chats API!
+          schema:
+            type: string
+      summary: Health endpoint
+swagger: "2.0"

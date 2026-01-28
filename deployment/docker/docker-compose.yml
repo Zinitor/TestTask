@@ -20,7 +20,7 @@ services:
           "--quiet",
           "--tries=1",
           "--timeout=3",
-          "http://localhost:8000/chats/hello",
+          "http://localhost:8000/health",
           "||",
           "exit",
           "1",
