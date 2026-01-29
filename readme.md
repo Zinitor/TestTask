@@ -53,7 +53,29 @@ go test ./internal/repos/chats/
 ```
 
 
-для запуска бенчмарк тестов репозиториев (сделан только на get, остальные показались лишними)
+для запуска бенчмарк тестов репозиториев (сделан только на get с message, т.к. он самый нагруженный, остальные показались лишними)
 ```bash
 go test -tags=bench ./internal/repos/chats -bench=BenchmarkRepository_Get_WithPreload  -benchmem -memprofile=allocs.out -cpuprofile=cpu.out
+```
+
+Изначальный бенчмарк показал с использованием preload
+```
+goos: linux
+goarch: amd64
+pkg: ReviewTask/internal/repos/chats
+cpu: AMD Ryzen 7 7700 8-Core Processor
+BenchmarkRepository_Get_WithPreload-16    	    2800	    395428 ns/op	   59999 B/op	    1066 allocs/op
+PASS
+ok  	ReviewTask/internal/repos/chats	1.135s
+```
+После некоторых оптимизаций смог прийти к такому, что конечно все ещё грустно, но все равно лучше
+
+```
+goos: linux
+goarch: amd64
+pkg: ReviewTask/internal/repos/chats
+cpu: AMD Ryzen 7 7700 8-Core Processor
+BenchmarkRepository_Get_WithPreload-16    	    3808	    265084 ns/op	   46515 B/op	     728 allocs/op
+PASS
+ok  	ReviewTask/internal/repos/chats	1.211s
 ```
