@@ -24,7 +24,7 @@ definitions:
   chats.CreateMessageRequest:
     properties:
       text:
-        maxLength: 500
+        maxLength: 5000
         minLength: 1
         type: string
     required:

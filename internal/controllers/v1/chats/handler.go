@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -117,14 +118,21 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//validation
+	var maxTitleLen int = 200
 	if req.Title == "" {
 		http.Error(w, "Title is required", http.StatusBadRequest)
 		return
 	}
+	trimmedTitle := strings.TrimSpace(req.Title)
+	if utf8.RuneCountInString(trimmedTitle) > maxTitleLen {
+		http.Error(w, fmt.Sprintf("Title should be no more than %d symbols", maxTitleLen), http.StatusBadRequest)
+		return
+	}
 
-	chat, err := h.service.Create(ctx, req.Title)
+	chat, err := h.service.Create(ctx, trimmedTitle)
 	if err != nil {
-		h.logger.Error("failed to create chat '%s': %v", req.Title, err)
+		h.logger.Error("failed to create chat '%s': %v", trimmedTitle, err)
 		h.handleServiceError(w, err)
 		return
 	}
@@ -176,8 +184,14 @@ func (h *Handler) addMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//validation
+	var maxMessageLen int = 5000
 	if req.Text == "" {
 		http.Error(w, "Text is required", http.StatusBadRequest)
+		return
+	}
+	if utf8.RuneCountInString(req.Text) > maxMessageLen {
+		http.Error(w, fmt.Sprintf("Message should be no more than %d symbols", maxMessageLen), http.StatusBadRequest)
 		return
 	}
 

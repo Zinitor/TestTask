@@ -7,7 +7,7 @@ type CreateChatRequest struct {
 }
 
 type CreateMessageRequest struct {
-	Text string `json:"text" validate:"required,min=1,max=500"`
+	Text string `json:"text" validate:"required,min=1,max=5000"`
 }
 
 type Message struct {

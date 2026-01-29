@@ -320,7 +320,7 @@ const docTemplate = `{
             "properties": {
                 "text": {
                     "type": "string",
-                    "maxLength": 500,
+                    "maxLength": 5000,
                     "minLength": 1
                 }
             }

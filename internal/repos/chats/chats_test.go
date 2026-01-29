@@ -2,7 +2,6 @@ package chats
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"ReviewTask/pkg/postgres"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // mockLogger implements logger.Interface for testing
@@ -33,7 +33,11 @@ func (m *mockLogger) Fatal(format any, args ...any) {}
 func setupTestDB(tb testing.TB) *postgres.DB {
 	tb.Helper()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		// this shows some errors in logs when running tests unfortunately
+		// could confuse someone else
+		Logger: logger.Default.LogMode(logger.Error),
+	})
 	require.NoError(tb, err)
 
 	err = db.AutoMigrate(&Chat{}, &Message{})
@@ -264,23 +268,5 @@ func TestRepository_AddMessage(t *testing.T) {
 				assert.Equal(t, tt.text, msg.Text)
 			}
 		})
-	}
-}
-
-// although this benchmark isn't representative of actual db
-// it's still an enough measurement tool
-func BenchmarkRepository_Get_WithPreload(b *testing.B) {
-	db := setupTestDB(b)
-	repo := NewRepository(&mockLogger{}, db)
-
-	chat := Chat{Title: "Benchmark Chat"}
-	db.Create(&chat)
-	for i := range 1000 {
-		db.Create(&Message{Text: fmt.Sprintf("msg %d", i), ChatID: chat.ID})
-	}
-
-	b.ResetTimer()
-	for b.Loop() {
-		repo.Get(context.Background(), int(chat.ID), 50, 0)
 	}
 }
