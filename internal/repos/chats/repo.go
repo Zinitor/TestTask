@@ -47,23 +47,15 @@ func (r Repository) Get(ctx context.Context, chatID int, limit int, lastID int) 
 	if chatID <= 0 {
 		return nil, fmt.Errorf("invalid chat ID: %d", chatID)
 	}
-
 	if limit < 0 {
 		return nil, fmt.Errorf("invalid message limit: %d", limit)
 	}
 
-	var chat Chat
 	chatIDUint := uint(chatID)
 
-	err := r.db.WithContext(ctx).Preload("Messages", func(db *gorm.DB) *gorm.DB {
-		query := db.Order("created_at DESC").Limit(limit)
-		if lastID > 0 {
-			query = query.Where("id < ?", lastID)
-		}
-		return query
-	}).First(&chat, chatIDUint).Error
-
-	if err != nil {
+	var chat Chat
+	if err := r.db.WithContext(ctx).Select("id", "title", "created_at").
+		First(&chat, chatIDUint).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("chat not found: %w", gorm.ErrRecordNotFound)
 		}
@@ -71,6 +63,19 @@ func (r Repository) Get(ctx context.Context, chatID int, limit int, lastID int) 
 		return nil, fmt.Errorf("database error: %w", err)
 	}
 
+	messages := make([]Message, 0, limit)
+	query := r.db.WithContext(ctx).Select("id", "text", "created_at").
+		Where("chat_id = ? AND deleted_at IS NULL", chatIDUint).
+		Order("created_at DESC").Limit(limit)
+	if lastID > 0 {
+		query = query.Where("id < ?", lastID)
+	}
+	if err := query.Find(&messages).Error; err != nil {
+		r.logger.Error("failed to load messages", "error", err, "chat_id", chatID)
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+
+	chat.Messages = messages
 	return TransformChatToDTO(&chat), nil
 }
 
