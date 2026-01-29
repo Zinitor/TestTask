@@ -8,7 +8,9 @@ Stack:
 - **Migrations**: Goose
 
 Запуск проекта
+```bash
 docker compose  -f deployment/docker/docker-compose.yml  --env-file .env up  -d --build --force-recreate
+```
 
 Необходимые переменные окружения указываются в .env файле
 
