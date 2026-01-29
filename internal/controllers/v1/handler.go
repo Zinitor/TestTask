@@ -32,7 +32,6 @@ func NewServeMux(
 	return mux, nil
 }
 
-// registerSwaggerRoutes serves Swagger assets (private helper)
 func registerSwaggerRoutes(mux *http.ServeMux, logger logger.Interface) error {
 	spec, err := swag.ReadDoc()
 	if err != nil {

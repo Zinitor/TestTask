@@ -4,6 +4,7 @@ import (
 	"ReviewTask/internal"
 	"ReviewTask/internal/service"
 	"ReviewTask/pkg/logger"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,10 +16,10 @@ import (
 )
 
 type chatsServiceInterface interface {
-	Create(title string) (*service.Chat, error)
-	Get(chatID int, limit int, lastID int) (*service.Chat, error)
-	AddMessage(chatID int, text string) (*service.Message, error)
-	Delete(chatID int) error
+	Create(ctx context.Context, title string) (*service.Chat, error)
+	Get(ctx context.Context, chatID int, limit int, lastID int) (*service.Chat, error)
+	AddMessage(ctx context.Context, chatID int, text string) (*service.Message, error)
+	Delete(ctx context.Context, chatID int) error
 }
 
 type Handler struct {
@@ -39,8 +40,6 @@ func NewChatsHandler(
 	}
 }
 
-// RegisterRoutes attaches chat-related routes to the provided ServeMux.
-// This keeps routing configuration encapsulated within the controller package.
 func RegisterRoutes(mux *http.ServeMux, handler *Handler) {
 	mux.HandleFunc("GET /health", handler.health)
 	mux.HandleFunc("POST /chats/", handler.add)
@@ -49,14 +48,10 @@ func RegisterRoutes(mux *http.ServeMux, handler *Handler) {
 	mux.HandleFunc("DELETE /chats/{id}", handler.delete)
 }
 
-// handleServiceError writes a standardized JSON error response based on service-layer errors.
-// Caller MUST log the error with contextual details before invoking this method.
-// Returns appropriate HTTP status and user-facing message while avoiding internal error leakage.
 func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
 	statusCode := http.StatusInternalServerError
 	errorMsg := "Internal server error"
 
-	// Map service errors to HTTP responses (safe for client exposure)
 	switch {
 	case errors.Is(err, internal.ErrChatNotFound):
 		statusCode = http.StatusNotFound
@@ -65,14 +60,11 @@ func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
 		errors.Is(err, internal.ErrMessageEmpty),
 		errors.Is(err, internal.ErrMessageTooLong):
 		statusCode = http.StatusBadRequest
-		// Use error's message for validation errors (designed for client consumption)
 		if err != nil && err.Error() != "" {
 			errorMsg = err.Error()
 		}
-		// Extend this switch for new service errors as needed
 	}
 
-	// Always return consistent JSON structure per OpenAPI spec
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if encodeErr := json.NewEncoder(w).Encode(map[string]string{"error": errorMsg}); encodeErr != nil {
@@ -80,9 +72,6 @@ func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
 	}
 }
 
-// writeJSONResponse writes a standardized JSON response with proper headers and error logging.
-// Sets Content-Type header, writes status code, encodes data, and logs encoding errors.
-// Safe to call only once per response (headers must not be committed beforehand).
 func writeJSONResponse(w http.ResponseWriter, log logger.Interface, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -114,6 +103,7 @@ func (h *Handler) health(w http.ResponseWriter, _ *http.Request) {
 // @Failure		500		{object}	map[string]string	"Internal server error"
 // @Router			/chats/ [post]
 func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	defer func() {
 		if closeErr := r.Body.Close(); closeErr != nil {
 			h.logger.Error("failed to close request body: %v", closeErr)
@@ -132,7 +122,7 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chat, err := h.service.Create(req.Title)
+	chat, err := h.service.Create(ctx, req.Title)
 	if err != nil {
 		h.logger.Error("failed to create chat '%s': %v", req.Title, err)
 		h.handleServiceError(w, err)
@@ -156,6 +146,7 @@ func (h *Handler) add(w http.ResponseWriter, r *http.Request) {
 // @Failure		500		{object}	map[string]string		"Internal server error"
 // @Router			/chats/{id}/messages/ [post]
 func (h *Handler) addMessage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	defer func() {
 		if closeErr := r.Body.Close(); closeErr != nil {
 			h.logger.Error("failed to close request body: %v", closeErr)
@@ -190,7 +181,7 @@ func (h *Handler) addMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message, err := h.service.AddMessage(chatID, req.Text)
+	message, err := h.service.AddMessage(ctx, chatID, req.Text)
 	if err != nil {
 		h.logger.Error("failed to create message '%s': %v", req.Text, err)
 		h.handleServiceError(w, err)
@@ -211,6 +202,7 @@ func (h *Handler) addMessage(w http.ResponseWriter, r *http.Request) {
 // @Failure		500	{object}	map[string]string	"Internal server error"
 // @Router			/chats/{id} [delete]
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	path := strings.TrimPrefix(r.URL.Path, "/chats/")
 	path = strings.TrimSuffix(path, "/")
 
@@ -225,7 +217,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.service.Delete(chatID); err != nil {
+	if err = h.service.Delete(ctx, chatID); err != nil {
 		h.logger.Error("failed to delete chat: %v | id: %d", err, chatID)
 		h.handleServiceError(w, err)
 		return
@@ -247,6 +239,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 // @Failure		500		{object}	map[string]string	"Internal server error"
 // @Router			/chats/{id} [get]
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	path := strings.TrimPrefix(r.URL.Path, "/chats/")
 	path = strings.TrimSuffix(path, "/")
 	if path == "" {
@@ -287,7 +280,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	chat, err := h.service.Get(chatID, limit, lastID)
+	chat, err := h.service.Get(ctx, chatID, limit, lastID)
 	if err != nil {
 		h.logger.Error("failed to get chat: %v | id: %d", err, chatID)
 		h.handleServiceError(w, err)
