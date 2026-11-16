@@ -22,3 +22,8 @@ go.work.sum
 
 
 .vscode/
+
+# Local config and profiling output
+.env
+*.out
+*.exe
